@@ -29,12 +29,13 @@ class conectar_db_r:
                                                    self.port,
                                                    self.database)
         sqlEngine = create_engine(url)
-        dbConnection = sqlEngine.connect()
-        return dbConnection
+        self.dbConnection = sqlEngine.connect()
+        return self.dbConnection
 
     def exec_dql(self):
-        sql_table = self.dbConnection.execute(text(f"select * from {self.tabela};"))
-        nome_das_colunas = self.dbConnection.execute(text(f"""select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS
+        conect = self.login()
+        sql_table = conect.execute(text(f"select * from {self.tabela};"))
+        nome_das_colunas = conect.execute(text(f"""select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS
                                                                    WHERE TABLE_NAME = '{self.tabela}'"""))
         for coluna in nome_das_colunas:
             self.lista_colunas.append(coluna[0])
@@ -50,7 +51,7 @@ class conectar_db_r:
                 valor_antes = valor_antes + ',' + valor
         return valor_antes
 
-    def adicionar_nf_mysql(self,chave):
+    def adicionar_nf_mysql(self,chave,conexao):
         root = ET.parse(chave).getroot()  # abrir xml e 'parcing'
         http = "http://www.portalfiscal.inf.br/nfe"  # definir prefixo para pesquisa
         nsNFE = {'ns': http}  # dicionario para usar prefixo criado para 'find' no xml da NFe
@@ -104,20 +105,19 @@ class conectar_db_r:
             linha_tabela.append(data_lanc)
             linha_tabela.append(fornecedor)
             tuplas = tuple(linha_tabela)
-            comando_insert = f"""INSERT INTO info_nf1 ({self.cols(conectar_db_r,tabela_nf.columns)},data_entrada,fornecedor)
-            VALUES {tuplas};"""
-            # self.dbConnection.execute(conectar_db_r.login,text(comando_insert))
-            self.login(self).execute(text(comando_insert))
-            main.janela_empresa.checar_campos()
-
-        comando_deletar_duplicado = """delete t1 FROM info_nf1 t1
-                                    INNER  JOIN info_nf1 t2
+            comando_insert = f"""INSERT INTO info_nf1 
+                                ({self.cols(tabela_nf.columns)},
+                                data_entrada,
+                                fornecedor)
+                            VALUES {tuplas};"""
+            self.login().execute(text(comando_insert))
+        comando_deletar_duplicado = f"""delete t1 FROM {self.tabela} t1
+                                    INNER  JOIN {self.tabela} t2
                                     WHERE
                                         t1.id_sql > t2.id_sql AND
                                         t1.cProd = t2.cProd AND
                                         t1.chave_de_acesso = t2.chave_de_acesso AND
                                         t1.vProd = t2.vProd;"""
+        # self.login().execute(text(comando_deletar_duplicado))
 
-        # self.dbConnection.execute(conectar_db_r,text(comando_deletar_duplicado))
-        # self.dbConnection.commit(conectar_db_r)
-        print('Lido= ',chave)
+        print('deletado')

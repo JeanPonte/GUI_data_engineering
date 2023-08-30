@@ -8,11 +8,11 @@ import os
 class ler_nf_auto:
     def __init__(self,conexao):
         self.conexao = conexao
-    def abrir_dialog():
+    def abrir_dialog(self):
+        mtd = conectar_db.conectar_db_r.adicionar_nf_mysql
         path = filedialog.askdirectory()
         for chave in os.listdir(path):
-            conectar_db.conectar_db_r.adicionar_nf_mysql(conectar_db.conectar_db_r,
-                                                         chave=f'{path}/{chave}')
+            mtd(self.conexao,chave=f'{path}/{chave}',conexao=self.conexao)
     def criar_janela(self):
         #Criar Janela
         self.janela_auto = tkinter.Toplevel()
@@ -33,7 +33,7 @@ class ler_nf_auto:
                                           text='Selecione\numa pasta:')
         self.botao_navegar_pasta = Button(self.frame_selecionar,
                                         text='Navegar...',
-                                        command=ler_nf_auto.abrir_dialog)
+                                        command=self.abrir_dialog)
 
         self.selecionar_pasta_text.grid(row=0,column=0)
         self.botao_navegar_pasta.grid(row=0,column=1)
