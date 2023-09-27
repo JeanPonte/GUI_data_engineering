@@ -9,9 +9,11 @@ import os
 import time
 from datetime import datetime
 import numpy as np
+from tkinter import messagebox
 
 class conectar_db_r:
-    def __init__(self,host,user,port,password,database,tabela):
+    def __init__(self,status_login,host,user,port,password,database,tabela):
+        self.status_login = status_login
         self.host = host
         self.user = user
         self.port = port
@@ -28,12 +30,21 @@ class conectar_db_r:
                                                    self.host,
                                                    self.port,
                                                    self.database)
-        sqlEngine = create_engine(url)
-        self.dbConnection = sqlEngine.connect()
-        return self.dbConnection
+        try:
+            sqlEngine = create_engine(url)
+            self.dbConnection = sqlEngine.connect()
+            self.status_login = True
+            # print('Conectado')
+            return self.dbConnection ,self.status_login
+        except:
+            self.status_login = False
+            self.dbConnection = ''
+            # print('Erro')
+            return self.dbConnection,self.status_login
+
 
     def exec_dql(self):
-        conect = self.login()
+        conect = self.dbConnection
         sql_table = conect.execute(text(f"select * from {self.tabela};"))
         nome_das_colunas = conect.execute(text(f"""select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS
                                                                    WHERE TABLE_NAME = '{self.tabela}'"""))

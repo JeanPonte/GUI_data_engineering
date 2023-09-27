@@ -106,7 +106,7 @@ class janela_empresa:
         self.btn_confirmar.grid(row=0, column=1)
     def botao_menu(self,frame,func1,func2):
         self.bt_home = Button(frame,
-                                text='Menu',
+                                text='Home',
                                 command=lambda:[func1(),func2()])
         self.bt_home.grid(row=0, column=0)
 
@@ -122,31 +122,39 @@ class janela_empresa:
 
             messagebox.showerror('Campo Vazio','Por favor complete todos os campos')
         else:
-            self.entrar_db = conectar_db.conectar_db_r(self.host_entry.get(),
+            self.entrar_db = conectar_db.conectar_db_r(self.logado_com_banco_de_dados,self.host_entry.get(),
                                                        self.user_entry.get(),
                                                        self.port_entry.get(),
                                                        self.password_entry.get(),
                                                        self.database_entry.get(),
                                                        self.tabela_entry.get())
-            # self.conect = self.entrar_db.login()
-            messagebox.showinfo('Conectado','Login efetuado com sucesso')
-            self.logado_com_banco_de_dados = True
-            self.janela_login_db.withdraw()
-            self.root.deiconify()
+            self.db_conection,self.status = self.entrar_db.login()
+            if self.status is True:
+                messagebox.showinfo('Conectado','Login efetuado com sucesso')
+                self.janela_login_db.withdraw()
+                self.root.deiconify()
+                self.logado_com_banco_de_dados = True
+            elif self.status is False:
+                messagebox.showerror('Erro 001', 'Login não concluido, por favor verifique os campos')
+            else:
+                messagebox.showerror('Erro 002', 'Não foi possivel acessar Conectar_db')
 
     def bt_entrada_auto(self):
-        if self.logado_com_banco_de_dados:
-            classe_auto = auto.ler_nf_auto(self.entrar_db)
+        if self.logado_com_banco_de_dados is True:
+            self.esconder()
+            classe_auto = auto.ler_nf_auto(self.db_conection)
             classe_auto.criar_janela()
+            self.fecharframe()
+
         else:
             self.login_tabela()
     def bt_entrada_manual(self):
-        if self.logado_com_banco_de_dados:
-            manual.ler_nf_manual.criar_janela(self)
+        if self.logado_com_banco_de_dados is True:
+            manual.ler_nf_manual.criar_janela(self.db_conection)
         else:
             self.login_tabela()
     def abrir_tabela(self):
-        if self.logado_com_banco_de_dados:
+        if self.logado_com_banco_de_dados is True:
             self.entrar_db.exec_dql()
             self.linha = self.entrar_db.lista_linhas
             self.coluna = self.entrar_db.lista_colunas
@@ -171,7 +179,12 @@ class janela_empresa:
                 for itens in n_linha:
                     lista_valor.append(itens)
                 self.treeview_table.insert('','end',iid=n_linha[0],values=lista_valor)
-            self.treeview_table.grid(pady=20,padx=20)
+            self.treeview_table.grid(row=0,column=0,pady=20,padx=20)
+
+            self.botao_menu = Button(self.frame_tabela,
+                                     text='Home',
+                                     command=lambda:self.janela_tabela.withdraw())
+            self.botao_menu.grid(row=1,column=0)
         else:
             self.login_tabela()
 
