@@ -34,6 +34,7 @@ class conectar_db_r:
             sqlEngine = create_engine(url)
             self.dbConnection = sqlEngine.connect()
             self.status_login = True
+
             # print('Conectado')
             return self.dbConnection ,self.status_login
         except:
@@ -42,27 +43,20 @@ class conectar_db_r:
             # print('Erro')
             return self.dbConnection,self.status_login
 
-
     def exec_dql(self):
+        self.lista_colunas = []
+        self.lista_linhas = []
         conect = self.dbConnection
         sql_table = conect.execute(text(f"select * from {self.tabela};"))
         nome_das_colunas = conect.execute(text(f"""select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS
-                                                                   WHERE TABLE_NAME = '{self.tabela}'"""))
+                                                            WHERE TABLE_NAME = '{self.tabela}'"""))
         for coluna in nome_das_colunas:
             self.lista_colunas.append(coluna[0])
         for linha in sql_table:
             self.lista_linhas.append(linha)
 
-    def cols(self,lista_fconcat):
-        valor_antes = ''
-        for valor in lista_fconcat:
-            if valor_antes == '':
-                valor_antes = valor
-            else:
-                valor_antes = valor_antes + ',' + valor
-        return valor_antes
-
-    def adicionar_nf_mysql(self,chave,conexao):
+    def adicionar_nf_mysql(self,chave):
+        conect = self.dbConnection
         root = ET.parse(chave).getroot()  # abrir xml e 'parcing'
         http = "http://www.portalfiscal.inf.br/nfe"  # definir prefixo para pesquisa
         nsNFE = {'ns': http}  # dicionario para usar prefixo criado para 'find' no xml da NFe
@@ -116,12 +110,17 @@ class conectar_db_r:
             linha_tabela.append(data_lanc)
             linha_tabela.append(fornecedor)
             tuplas = tuple(linha_tabela)
+
+            lista_join = tabela_nf.columns
+            delimiter = ','
+            lista_concat = delimiter.join(lista_join)
+
             comando_insert = f"""INSERT INTO info_nf1 
-                                ({self.cols(tabela_nf.columns)},
+                                ({lista_concat},
                                 data_entrada,
                                 fornecedor)
                             VALUES {tuplas};"""
-            self.login().execute(text(comando_insert))
+            conect.execute(text(comando_insert))
         comando_deletar_duplicado = f"""delete t1 FROM {self.tabela} t1
                                     INNER  JOIN {self.tabela} t2
                                     WHERE
@@ -129,6 +128,6 @@ class conectar_db_r:
                                         t1.cProd = t2.cProd AND
                                         t1.chave_de_acesso = t2.chave_de_acesso AND
                                         t1.vProd = t2.vProd;"""
-        # self.login().execute(text(comando_deletar_duplicado))
-
-        print('deletado')
+        conect.execute(text(comando_deletar_duplicado))
+        conect.commit()
+        print('Commit concluido')

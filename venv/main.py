@@ -7,10 +7,12 @@ import conectar_db
 import manual
 
 
-tela_principal = '600x300+350+100' #variavel para tamanho da tela
+tela_principal = '600x300+370+200' #variavel para tamanho da tela
 class janela_empresa:
     def __init__(self):
         self.logado_com_banco_de_dados = False
+        self.tabela_col_exibido = False
+        self.item_tree = 0
         self.root = Tk()
         self.config()
         self.frames()
@@ -37,7 +39,7 @@ class janela_empresa:
                                     text='Ver tabela',
                                     command=self.abrir_tabela)
 
-        self.entrada_texto.grid(row=0,column=0)
+        self.entrada_texto.grid(row=0,column=0,pady=20)
         self.entrada_manual.grid(row=0,column=1)
         self.entrada_auto.grid(row=0,column=2)
         self.bt_ver_tabela.grid(row=0,column=0)
@@ -48,13 +50,13 @@ class janela_empresa:
         self.esconder() #Chama a função para esconder a janela principal
 
         self.janela_login_db = tkinter.Toplevel()
-        self.janela_login_db.geometry('300x150+350+100')
+        self.janela_login_db.geometry(tela_principal)
         self.janela_login_db.title('Login Banco de dados')
 
         #Frames
         self.frame_label = Frame(self.janela_login_db)
         self.frame_botoes = Frame(self.janela_login_db)
-        self.frame_label.pack()
+        self.frame_label.pack(pady=20)
         self.frame_botoes.pack()
 
         #Labels
@@ -77,7 +79,7 @@ class janela_empresa:
         self.host_entry = Entry(self.frame_label)
         self.user_entry = Entry(self.frame_label)
         self.port_entry = Entry(self.frame_label)
-        self.password_entry = Entry(self.frame_label)
+        self.password_entry = Entry(self.frame_label, show="*")
         self.database_entry = Entry(self.frame_label)
         self.tabela_entry = Entry(self.frame_label)
 
@@ -106,28 +108,37 @@ class janela_empresa:
         self.btn_confirmar.grid(row=0, column=1)
     def botao_menu(self,frame,func1,func2):
         self.bt_home = Button(frame,
-                                text='Home',
-                                command=lambda:[func1(),func2()])
+                              text='Home',
+                              command=lambda:[func1(),func2()])
         self.bt_home.grid(row=0, column=0)
 
     def fecharframe(self):
         self.root.deiconify() #Chama a função inicial (Abre a janela inicial)
     def checar_campos(self):
-        if (self.host_entry.get() \
-            and self.user_entry.get() \
-            and self.port_entry.get() \
-            and self.password_entry.get() \
-            and self.database_entry.get() \
-            and self.tabela_entry.get()) == '':
+        self.credenciais = {'host':self.host_entry.get(),
+                            'user':self.user_entry.get(),
+                            'port':self.port_entry.get(),
+                            'password':self.password_entry.get(),
+                            'database':self.database_entry.get(),
+                            'tabela':self.tabela_entry.get()}
+
+        if (self.credenciais['host'] \
+            and self.credenciais['user'] \
+            and self.credenciais['port'] \
+            and self.credenciais['password'] \
+            and self.credenciais['database'] \
+            and self.credenciais['tabela']) == '':
 
             messagebox.showerror('Campo Vazio','Por favor complete todos os campos')
         else:
-            self.entrar_db = conectar_db.conectar_db_r(self.logado_com_banco_de_dados,self.host_entry.get(),
-                                                       self.user_entry.get(),
-                                                       self.port_entry.get(),
-                                                       self.password_entry.get(),
-                                                       self.database_entry.get(),
-                                                       self.tabela_entry.get())
+            self.entrar_db = conectar_db.conectar_db_r(self.logado_com_banco_de_dados,
+                                                       self.credenciais['host'] ,
+                                                       self.credenciais['user'],
+                                                       self.credenciais['port'],
+                                                       self.credenciais['password'],
+                                                       self.credenciais['database'],
+                                                       self.credenciais['tabela'])
+
             self.db_conection,self.status = self.entrar_db.login()
             if self.status is True:
                 messagebox.showinfo('Conectado','Login efetuado com sucesso')
@@ -135,22 +146,19 @@ class janela_empresa:
                 self.root.deiconify()
                 self.logado_com_banco_de_dados = True
             elif self.status is False:
-                messagebox.showerror('Erro 001', 'Login não concluido, por favor verifique os campos')
+                messagebox.showerror('Erro 001', 'Login não concluido, por favor verifique os campos',)
             else:
                 messagebox.showerror('Erro 002', 'Não foi possivel acessar Conectar_db')
 
     def bt_entrada_auto(self):
         if self.logado_com_banco_de_dados is True:
-            self.esconder()
-            classe_auto = auto.ler_nf_auto(self.db_conection)
-            classe_auto.criar_janela()
-            self.fecharframe()
-
+            classe_auto = auto.ler_nf_auto(self.credenciais)
+            # self.fecharframe()
         else:
             self.login_tabela()
     def bt_entrada_manual(self):
         if self.logado_com_banco_de_dados is True:
-            manual.ler_nf_manual.criar_janela(self.db_conection)
+            manual.ler_nf_manual.criar_janela()
         else:
             self.login_tabela()
     def abrir_tabela(self):
@@ -167,9 +175,9 @@ class janela_empresa:
             self.frame_tabela = Frame(self.janela_tabela)
             self.frame_tabela.pack()
             self.treeview_table = Treeview(self.frame_tabela,
-                                           columns=(self.coluna),
-                                           selectmode='browse',
-                                           show='headings')
+                                       columns=(self.coluna),
+                                       selectmode='browse',
+                                       show='headings')
             for n_coluna in self.coluna:
                 self.treeview_table.heading(n_coluna,anchor='center',text=f'{n_coluna}')
             for n_linha in self.linha:
@@ -178,15 +186,14 @@ class janela_empresa:
                     self.treeview_table.column(column=col,width=110,anchor='center',stretch=True)
                 for itens in n_linha:
                     lista_valor.append(itens)
-                self.treeview_table.insert('','end',iid=n_linha[0],values=lista_valor)
-            self.treeview_table.grid(row=0,column=0,pady=20,padx=20)
-
+                self.treeview_table.insert('','end',values=lista_valor)
+            self.treeview_table.pack(padx=20,pady=20)
             self.botao_menu = Button(self.frame_tabela,
                                      text='Home',
-                                     command=lambda:self.janela_tabela.withdraw())
-            self.botao_menu.grid(row=1,column=0)
+                                     command=lambda:[self.limpar_tabela(),self.janela_tabela.withdraw()])
+            self.botao_menu.pack()
         else:
             self.login_tabela()
-
-janela_empresa()
-
+    def limpar_tabela(self):
+        for row in self.treeview_table.get_children():
+            self.treeview_table.delete(row)
